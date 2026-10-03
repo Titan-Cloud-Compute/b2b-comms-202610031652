@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard, roleGuard } from '../shared/auth.guard';
 
 /**
  * Feature route registry.
@@ -14,4 +15,18 @@ import { Routes } from '@angular/router';
  *
  * Or add routes here directly.
  */
-export const FEATURE_ROUTES: Routes = [];
+export const FEATURE_ROUTES: Routes = [
+  // Story: audit-log — admin-only audit trail, rendered inside the app shell.
+  {
+    path: 'admin/audit-log',
+    loadComponent: () => import('../shared/layout.component').then(m => m.LayoutComponent),
+    data: { rendersSupportFooterInLayout: true, roles: ['ADMIN'] },
+    canActivate: [authGuard, roleGuard],
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./audit-log/audit-log.component').then(m => m.AuditLogComponent),
+      },
+    ],
+  },
+];

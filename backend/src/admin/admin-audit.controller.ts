@@ -61,10 +61,24 @@ export class AdminAuditController {
 
     const [rows, total] = await this.prisma.runAsAdmin((tx) =>
       Promise.all([
-        tx.auditLog.findMany({ where, orderBy: { createdAt: 'desc' }, take, skip }),
+        tx.auditLog.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          take,
+          skip,
+          include: { actorUser: { select: { email: true } } },
+        }),
         tx.auditLog.count({ where }),
       ]),
     );
-    return { rows, total, page: pageNum, pageSize: take };
+    return {
+      rows: rows.map(({ actorUser, ...row }) => ({
+        ...row,
+        actorEmail: actorUser?.email ?? null,
+      })),
+      total,
+      page: pageNum,
+      pageSize: take,
+    };
   }
 }

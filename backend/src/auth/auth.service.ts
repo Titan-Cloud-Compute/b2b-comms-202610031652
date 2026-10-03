@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -15,6 +16,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AppConfigService } from '../config/config.service';
 import type { SessionPayload } from './session.types';
 import { MailerService } from './mailer.service';
+import { AuditLogService } from '../common/audit-log.service';
 
 /** Default org seat cap when SystemSetting ORG_MAX_SEATS is unset. */
 const DEFAULT_ORG_MAX_SEATS = 5;
@@ -51,7 +53,22 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: AppConfigService,
     private readonly mailer: MailerService,
+    @Optional() private readonly auditLog?: AuditLogService,
   ) {}
+
+  /** Record a user auth event (auth.login / auth.signup / auth.login_failed). */
+  private async recordAuthEvent(
+    action: string,
+    user: { id: string; role: string } | null,
+  ): Promise<void> {
+    if (!this.auditLog) return;
+    await this.auditLog.write({
+      actor: user?.role === 'ADMIN' ? AuditActor.ADMIN : AuditActor.USER,
+      actorUserId: user?.id ?? null,
+      action,
+      payload: {},
+    });
+  }
 
   /**
    * Atomically claim an unconsumed, unexpired registration token. Returns the
@@ -209,6 +226,7 @@ export class AuthService {
     }
 
     await this.applyModelGrant(user.id, grantedModelIds);
+    await this.recordAuthEvent('auth.signup', user);
 
     return { user, token: await this.issueToken(user) };
   }
@@ -219,6 +237,7 @@ export class AuthService {
       tx.user.findUnique({ where: { email } }),
     );
     if (!user || !user.passwordHash) {
+      await this.recordAuthEvent('auth.login_failed', null);
       throw new UnauthorizedException('invalid credentials');
     }
     let ok = false;
@@ -227,8 +246,12 @@ export class AuthService {
     } catch {
       ok = false;
     }
-    if (!ok) throw new UnauthorizedException('invalid credentials');
+    if (!ok) {
+      await this.recordAuthEvent('auth.login_failed', user);
+      throw new UnauthorizedException('invalid credentials');
+    }
 
+    await this.recordAuthEvent('auth.login', user);
     return { user, token: await this.issueToken(user) };
   }
 

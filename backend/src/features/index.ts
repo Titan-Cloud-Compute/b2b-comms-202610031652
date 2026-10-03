@@ -11,5 +11,7 @@
  *
  * Or simply add it here directly.
  */
+import { AuditLogFeatureModule } from './audit-log/audit-log.module';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const FEATURE_MODULES: any[] = [];
+export const FEATURE_MODULES: any[] = [AuditLogFeatureModule];
