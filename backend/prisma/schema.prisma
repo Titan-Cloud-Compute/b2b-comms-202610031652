@@ -54,6 +54,12 @@ model User {
   tokensConsumed RegistrationToken[] @relation("ConsumedTokens")
   passwordResetTokens PasswordResetToken[]
   vendorProfile       VendorProfile?
+
+  // Shared-channel back-relations (Prisma-client-only; no User table DDL change)
+  customer           Customer?       @relation("CustomerUser")
+  channelsCreated    Channel[]       @relation("ChannelCreator")
+  channelMemberships ChannelMember[] @relation("ChannelMemberships")
+  messages           Message[]       @relation("MessageAuthor")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -182,23 +188,26 @@ model VendorDocument {
 // by value only so the auth tables stay untouched.
 // ─────────────────────────────────────────────────────────────────────────────
 
-enum ChannelMemberRole {
+enum ChannelMemberSide {
   VENDOR
   CUSTOMER
 }
 
 model Customer {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  name      String?
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation("CustomerUser", fields: [userId], references: [id], onDelete: Cascade)
+  displayName String
+  createdAt   DateTime @default(now())
 }
 
 model Channel {
   id          String          @id @default(cuid())
   name        String
   createdById String
+  createdBy   User            @relation("ChannelCreator", fields: [createdById], references: [id], onDelete: Cascade)
   createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   members     ChannelMember[]
   messages    Message[]
 }
@@ -208,8 +217,9 @@ model ChannelMember {
   channelId String
   channel   Channel           @relation(fields: [channelId], references: [id], onDelete: Cascade)
   userId    String
-  role      ChannelMemberRole
-  createdAt DateTime          @default(now())
+  user      User              @relation("ChannelMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  side      ChannelMemberSide
+  joinedAt  DateTime          @default(now())
 
   @@unique([channelId, userId])
   @@index([userId])
@@ -220,6 +230,7 @@ model Message {
   channelId String
   channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
   authorId  String
+  author    User     @relation("MessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   body      String
   createdAt DateTime @default(now())
 
