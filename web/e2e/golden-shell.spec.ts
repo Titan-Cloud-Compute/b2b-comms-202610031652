@@ -37,7 +37,11 @@ async function mockApi(page: Page): Promise<void> {
       route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
     if (method === 'POST' && apiPath === 'auth/login') {
-      store.user = { id: '1', email: 'user@example.com', role: 'USER' };
+      let body: { email?: string } = {};
+      try { body = JSON.parse(req.postData() || '{}') as { email?: string }; } catch { /* ignore */ }
+      const email = body.email ?? 'user@example.com';
+      const role = /admin/i.test(email) ? 'ADMIN' : 'USER';
+      store.user = { id: '1', email, role };
       return json(store.user);
     }
     if (method === 'GET' && apiPath === 'users/me') {
@@ -102,7 +106,12 @@ test('forgot-password → request → reset with token → back to login', async
 });
 
 test('every kept route renders a data-free placeholder with no locale-specific strings', async ({ page }) => {
-  await login(page);
+  // Log in as admin so role-guarded routes (admin/*) are accessible.
+  await page.goto('/#/login');
+  await page.locator('#email').fill('admin@demo.local');
+  await page.locator('#password').fill('password1234');
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/#\/admin\/overview/, { timeout: 10_000 });
   for (const r of KEPT_ROUTES) {
     await page.goto(`/#/${r}`);
     await expect(page.locator('main.main-content [data-placeholder]').first(), r).toBeVisible();

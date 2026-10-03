@@ -402,7 +402,8 @@ export class SidebarComponent {
 
   roleLabel = computed(() => {
     const role = this.auth.user()?.role;
-    if (role === 'ADMIN') return 'ADMIN';
+    if (role === 'ADMIN' || role === 'SUPER_ADMIN') return 'ADMIN';
+    if (role === 'MANAGER') return 'Manager';
     return 'User';
   });
 
