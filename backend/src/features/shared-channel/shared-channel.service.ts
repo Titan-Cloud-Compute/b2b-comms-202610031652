@@ -30,7 +30,7 @@ export interface CustomerOption {
   name: string | null;
 }
 
-const VENDOR_ROLES = new Set(['MANAGER', 'ADMIN']);
+const VENDOR_ROLES = new Set(['MANAGER', 'ADMIN', 'SUPER_ADMIN']);
 const MAX_BODY = 4000;
 
 /**

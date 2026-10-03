@@ -1,8 +1,10 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../shared/auth.service';
 import { ChannelDto, CustomerOptionDto, SharedChannelApiService } from './shared-channel-api.service';
+
+const CHANNEL_POLL_MS = 5000;
 
 @Component({
   selector: 'app-channel-list',
@@ -43,6 +45,7 @@ import { ChannelDto, CustomerOptionDto, SharedChannelApiService } from './shared
 
       <section class="card">
         <h2>Your channels</h2>
+        @if (loadError()) { <p class="error" role="alert" data-testid="channel-load-error">{{ loadError() }}</p> }
         <ul class="channel-list" data-testid="channel-list">
           @for (ch of channels(); track ch.id) {
             <li data-testid="channel-item">
@@ -67,7 +70,7 @@ import { ChannelDto, CustomerOptionDto, SharedChannelApiService } from './shared
     .muted { opacity: 0.7; }
   `],
 })
-export class ChannelListComponent implements OnInit {
+export class ChannelListComponent implements OnInit, OnDestroy {
   private readonly api = inject(SharedChannelApiService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -82,18 +85,40 @@ export class ChannelListComponent implements OnInit {
     const role = this.auth.user()?.role;
     return role === 'MANAGER' || role === 'ADMIN' || role === 'SUPER_ADMIN';
   });
+  readonly loadError = signal<string | null>(null);
   name = '';
 
+  private customersLoaded = false;
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+
+  constructor() {
+    // React to the auth user arriving (or changing) after the component is created.
+    effect(() => {
+      if (this.canCreate() && !this.customersLoaded) {
+        this.customersLoaded = true;
+        void this.loadCustomers();
+      }
+    });
+  }
+
   async ngOnInit(): Promise<void> {
-    await Promise.all([this.loadChannels(), this.canCreate() ? this.loadCustomers() : Promise.resolve()]);
+    // Poll so channels shared by a vendor appear for customers without a reload.
+    this.pollTimer = setInterval(() => { void this.loadChannels(); }, CHANNEL_POLL_MS);
+    await this.loadChannels();
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollTimer) clearInterval(this.pollTimer);
+    this.pollTimer = null;
   }
 
   async loadChannels(): Promise<void> {
     try {
       const list = await this.api.listChannels();
       this.channels.set(Array.isArray(list) ? list : []);
-    } catch {
-      this.channels.set([]);
+      this.loadError.set(null);
+    } catch (e) {
+      this.loadError.set(e instanceof Error && e.message ? e.message : 'Could not load channels.');
     } finally {
       this.loading.set(false);
     }
@@ -103,8 +128,9 @@ export class ChannelListComponent implements OnInit {
     try {
       const list = await this.api.listCustomers();
       this.customers.set(Array.isArray(list) ? list : []);
-    } catch {
-      this.customers.set([]);
+    } catch (e) {
+      this.customersLoaded = false;
+      this.error.set(e instanceof Error && e.message ? e.message : 'Could not load customers.');
     }
   }
 

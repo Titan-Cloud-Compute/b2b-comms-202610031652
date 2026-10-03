@@ -75,7 +75,7 @@ export class ChannelDetailComponent implements OnInit, OnDestroy {
     }
     this.openStream();
     // Polling fallback: keeps the thread live even when SSE is unavailable.
-    this.pollTimer = setInterval(() => { void this.refresh(); }, POLL_MS);
+    this.pollTimer = setInterval(() => { this.refresh().catch(() => undefined); }, POLL_MS);
   }
 
   ngOnDestroy(): void {
