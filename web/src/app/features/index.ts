@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard, roleGuard } from '../shared/auth.guard';
 import { VENDOR_ONBOARDING_ROUTES } from './vendor-onboarding/vendor-onboarding.routes';
+import { SHARED_CHANNEL_ROUTES } from './shared-channel/shared-channel.routes';
 
 /**
  * Feature route registry.
@@ -32,4 +33,6 @@ export const FEATURE_ROUTES: Routes = [
   },
   // Story: vendor-onboarding
   ...VENDOR_ONBOARDING_ROUTES,
+  // Story: shared-channel — /channels and /channels/:id inside the layout shell.
+  ...SHARED_CHANNEL_ROUTES,
 ];

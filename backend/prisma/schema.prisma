@@ -176,3 +176,52 @@ model VendorDocument {
 
   @@index([vendorProfileId])
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared channels (Story: shared-channel). userId columns reference "User".id
+// by value only so the auth tables stay untouched.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ChannelMemberRole {
+  VENDOR
+  CUSTOMER
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model Channel {
+  id          String          @id @default(cuid())
+  name        String
+  createdById String
+  createdAt   DateTime        @default(now())
+  members     ChannelMember[]
+  messages    Message[]
+}
+
+model ChannelMember {
+  id        String            @id @default(cuid())
+  channelId String
+  channel   Channel           @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId    String
+  role      ChannelMemberRole
+  createdAt DateTime          @default(now())
+
+  @@unique([channelId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  channelId String
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([channelId, createdAt])
+}

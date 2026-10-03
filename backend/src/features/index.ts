@@ -14,10 +14,13 @@ import { VendorOnboardingModule } from './vendor-onboarding/vendor-onboarding.mo
  * Or simply add it here directly.
  */
 import { AuditLogFeatureModule } from './audit-log/audit-log.module';
+import { SharedChannelModule } from './shared-channel/shared-channel.module';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const FEATURE_MODULES: any[] = [
   AuditLogFeatureModule,
   // Story: vendor-onboarding
   VendorOnboardingModule,
+  // Story: shared-channel
+  SharedChannelModule,
 ];
