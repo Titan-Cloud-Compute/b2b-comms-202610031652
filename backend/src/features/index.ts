@@ -1,3 +1,5 @@
+import { VendorOnboardingModule } from './vendor-onboarding/vendor-onboarding.module';
+
 /**
  * Feature module registry.
  *
@@ -14,4 +16,8 @@
 import { AuditLogFeatureModule } from './audit-log/audit-log.module';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const FEATURE_MODULES: any[] = [AuditLogFeatureModule];
+export const FEATURE_MODULES: any[] = [
+  AuditLogFeatureModule,
+  // Story: vendor-onboarding
+  VendorOnboardingModule,
+];
