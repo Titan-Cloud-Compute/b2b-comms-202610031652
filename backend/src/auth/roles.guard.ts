@@ -28,6 +28,9 @@ export const RequireUser = (): ReturnType<typeof SetMetadata> =>
   Roles('USER', 'MANAGER', 'ADMIN');
 export const RequireFirmUser = (): ReturnType<typeof SetMetadata> =>
   Roles('USER', 'MANAGER', 'ADMIN');
+/** Allow MANAGER or ADMIN; block USER. */
+export const RequireManager = (): ReturnType<typeof SetMetadata> =>
+  Roles('MANAGER', 'ADMIN');
 export const RequireAdmin = (): ReturnType<typeof SetMetadata> =>
   Roles('ADMIN');
 
